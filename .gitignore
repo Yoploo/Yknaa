@@ -1,0 +1,9 @@
+# Ignore everything EXCEPT these file types
+!*/
+!*.cpp
+!*.c
+!*.h
+
+# Ignore specific directories
+cmake-build-debug/
+.idea/
