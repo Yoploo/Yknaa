@@ -3,6 +3,7 @@
 !*.cpp
 !*.c
 !*.h
+!*.sql
 
 # Ignore specific directories
 cmake-build-debug/
