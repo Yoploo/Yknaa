@@ -16,10 +16,14 @@
 #include <QFile>
 #include <QMessageBox>
 #include <QLineEdit>
+#include <sqlite3.h>
+#include "../Controller/deck.h"
+#include "../Controller/deck.c"
+#include "../Controller/card.h"
 
 void createMenuBar(QMenuBar &menuBar, QStackedWidget &stackedWidget);
 void createTopButtonsLayout(QHBoxLayout &topButtonsLayout, QStackedWidget &stackedWidget);
-void createTextEditPage(QStackedWidget &stackedWidget, const QString &pageTitle, int buttonIndex);
+void createTextEditPage(QStackedWidget &stackedWidget, const QString &pageTitle, int buttonIndex, sqlite3* db);
 void goToHomePage(QStackedWidget &stackedWidget);
 void createRegisterPage(QStackedWidget &stackedWidget);
 void createLoginPage(QStackedWidget &stackedWidget);
@@ -105,34 +109,62 @@ void createTopButtonsLayout(QHBoxLayout &topButtonsLayout, QStackedWidget &stack
 
 
 // Fonction pour créer une page avec QTextEdit et un bouton "Send" uniquement pour le bouton 1
-void createTextEditPage(QStackedWidget &stackedWidget, const QString &pageTitle, int buttonIndex) {
+void createTextEditPage(QStackedWidget &stackedWidget, const QString &pageTitle, int buttonIndex, sqlite3* db) {
     QWidget *page = new QWidget;
     QVBoxLayout *pageLayout = new QVBoxLayout(page);
 
     if (buttonIndex == 0) {
-        QLabel *labelQuestion = new QLabel("Question:", page);
-        QTextEdit *textEditQuestion = new QTextEdit(page);
-        textEditQuestion->setStyleSheet("margin-bottom: 5px;");
+        QLabel *labelSubject = new QLabel("Subject:", page);
+        QLineEdit *lineEditSubject = new QLineEdit(page);
+        lineEditSubject->setStyleSheet("margin-bottom: 5px;");
 
-        QLabel *labelAnswer = new QLabel("Answer:", page);
-        QTextEdit *textEditAnswer = new QTextEdit(page);
-        textEditAnswer->setStyleSheet("margin-bottom: 5px;");
+        QLabel *labelDescription = new QLabel("Description:", page);
+        QLineEdit *lineEditDescription = new QLineEdit(page);
+        lineEditDescription->setStyleSheet("margin-bottom: 5px;");
+
+        QLabel *labelTag = new QLabel("Tag:", page);
+        QLineEdit *lineEditTag = new QLineEdit(page);
+        lineEditTag->setStyleSheet("margin-bottom: 5px;");
+
+        QLabel *labelStatus = new QLabel("Status:", page);
+        QLineEdit *lineEditStatus = new QLineEdit(page);
+        lineEditStatus->setStyleSheet("margin-bottom: 5px;");
 
         QPushButton *sendButton = new QPushButton("Send", page);
 
-        pageLayout->addWidget(labelQuestion);
-        pageLayout->addWidget(textEditQuestion);
-        pageLayout->addWidget(labelAnswer);
-        pageLayout->addWidget(textEditAnswer);
+        pageLayout->addWidget(labelSubject);
+        pageLayout->addWidget(lineEditSubject);
+        pageLayout->addWidget(labelDescription);
+        pageLayout->addWidget(lineEditDescription);
+        pageLayout->addWidget(labelTag);
+        pageLayout->addWidget(lineEditTag);
+        pageLayout->addWidget(labelStatus);
+        pageLayout->addWidget(lineEditStatus);
         pageLayout->addWidget(sendButton);
         pageLayout->setSpacing(5);
 
         // Connect the button click signal to a slot for handling
-        QObject::connect(sendButton, &QPushButton::clicked, [textEditQuestion, textEditAnswer]() {
+        QObject::connect(sendButton, &QPushButton::clicked, [lineEditSubject, lineEditDescription, lineEditTag, lineEditStatus,db]() {
             // Handle the "Send" button click event
             qDebug() << "Send button clicked!";
-            qDebug() << "Question: " << textEditQuestion->toPlainText();
-            qDebug() << "Answer: " << textEditAnswer->toPlainText();
+
+            // Create a card with the entered values
+            struct deck newdeck {
+                    lineEditSubject->text().toUtf8().constData(),
+                    lineEditDescription->text().toUtf8().constData(),
+                    lineEditTag->text().toUtf8().constData(),
+                    lineEditStatus->text().toUtf8().constData(),
+                    1
+            };
+            int result = addDeck(db, &newdeck);
+            if (result != 0){
+                qDebug() << "bug";
+            }
+            else{
+                qDebug() << "nobug";
+            }
+
+
         });
     }else if (buttonIndex == 1) {
         // Page pour le bouton 2 (Mes Decks)

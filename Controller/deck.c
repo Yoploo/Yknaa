@@ -10,7 +10,7 @@
 int addDeck(sqlite3* db, const struct deck* Deck);
 int deleteDeck(sqlite3* db, const struct deck* Deck, int deck_id);
 
-int addDeck(sqlite3* db, const struct deck* Deck) {
+int addDeck(sqlite3* db, const struct deck* Deck){
     // Préparez la requête SQL avec des paramètres préparés
     const char* sql = "INSERT INTO decks (subject, description, tag, status, user_id) VALUES (?, ?, ?, ?, ?);";
 

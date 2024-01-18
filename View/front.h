@@ -14,7 +14,7 @@
 
 void createMenuBar(QMenuBar &menuBar, QStackedWidget &stackedWidget);
 void createTopButtonsLayout(QHBoxLayout &topButtonsLayout, QStackedWidget &stackedWidget);
-void createTextEditPage(QStackedWidget &stackedWidget, const QString &pageTitle, int buttonIndex);
+void createTextEditPage(QStackedWidget &stackedWidget, const QString &pageTitle, int buttonIndex, sqlite3* db);
 void goToHomePage(QStackedWidget &stackedWidget);
 void createLoginPage(QStackedWidget &stackedWidget);
 void createRegisterPage(QStackedWidget &stackedWidget);
