@@ -11,7 +11,9 @@ add_executable(Yknaa main.cpp
         Controller/card.h
         Controller/deck.h
         View/front.cpp
-        View/front.h)
+        View/front.h
+        Controller/user.c
+        Controller/user.h)
 
 
 find_package(PkgConfig REQUIRED)
