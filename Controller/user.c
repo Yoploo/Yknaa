@@ -6,6 +6,8 @@
 #include "user.h"
 int registerUser(sqlite3* db, const struct user *User);
 int UserExists(sqlite3* db, const char* nickname);
+int loginUser(sqlite3* db, const struct user *User);
+int deckByUser(sqlite3* db, const struct user *User);
 
 int userExists(sqlite3* db, const char* nickname) {
     // Requête pour vérifier si l'utilisateur existe déjà
@@ -79,7 +81,43 @@ int registerUser(sqlite3* db, const struct user *User) {
 
 }
 
-int deckByuser(sqlite3* db, const struct user *User, int deck_id) {
+int loginUser(sqlite3* db, const struct user *User) {
+
+    // Vérifier si l'utilisateur existe déjà
+    int userCount = userExists(db, User->nickname);
+
+    if (userCount < 0) {
+        fprintf(stderr, "Erreur lors de la vérification de l'existence de l'utilisateur.\n");
+        return userCount; // ou toute autre valeur pour indiquer une erreur
+    } else if (userCount > 0) {
+        fprintf(stderr, "L'utilisateur avec le nom '%s' existe déjà.\n", User->nickname);
+        return -1; // ou toute autre valeur pour indiquer que l'utilisateur existe déjà
+    }
+
+    const char* checkPassword = "SELECT password FROM users WHERE user_id = ?";
+    sqlite3_stmt* stmt;
+
+    int req = sqlite3_prepare_v2(db, checkPassword, -1, &stmt, 0);
+    if (req != SQLITE_OK) {
+        fprintf(stderr, "Erreur lors de la préparation de la requête : %s\n", sqlite3_errmsg(db));
+        return req;
+    }
+
+    sqlite3_bind_int(stmt, 1, User->user_id);
+    sqlite3_bind_int(stmt, 2, User->password);
+
+    req = sqlite3_step(stmt);
+    if (req != SQLITE_DONE) {
+        fprintf(stderr, "Erreur lors de l'exécution de la requête : %s\n", sqlite3_errmsg(db));
+        return req;
+    }
+
+    sqlite3_finalize(stmt);
+
+    return 0;
+}
+
+int deckByUser(sqlite3* db, const struct user *User) {
     const char* Decks = "SELECT deck_id FROM decks WHERE user_id = ?";
     sqlite3_stmt* stmt;
 
