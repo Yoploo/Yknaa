@@ -1,4 +1,4 @@
-#include "View/front.h"
+#include <sqlite3.h>
 #include <QApplication>
 #include <QLabel>
 #include <QVBoxLayout>
@@ -8,9 +8,20 @@
 #include <QStackedWidget>
 #include <QTextEdit>
 #include <QFileDialog>
+#include "View/front.h"
+
 
 /*
 int main(int argc, char *argv[]) {
+
+    // Ouvrir la base de données
+    sqlite3* db;
+    int result = sqlite3_open("Ykna.db", &db);
+    if (result != SQLITE_OK) {
+        printf("Impossible d'ouvrir la base de données : %s\n", sqlite3_errmsg(db));
+        return 1;
+    }
+
     QApplication app(argc, argv);
 
     // Create the main window
@@ -33,7 +44,7 @@ int main(int argc, char *argv[]) {
 
     // Create pages for each button
     for (int i = 1; i <= 5; ++i) {
-        createTextEditPage(stackedWidget, "Page for Button " + QString::number(i), i - 1);
+        createTextEditPage(stackedWidget, "Page for Button " + QString::number(i), i - 1,  db);
     }
 
     // Create the login page

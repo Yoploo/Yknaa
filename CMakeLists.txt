@@ -4,12 +4,13 @@ project(Yknaa)
 set(CMAKE_CXX_STANDARD 23)
 
 add_executable(Yknaa main.cpp
+        main.cpp
         Database/createDatabase.c
         Database/createDatabase.h
         Controller/deck.c
+        Controller/deck.h
         Controller/card.c
         Controller/card.h
-        Controller/deck.h
         View/front.cpp
         View/front.h
         Controller/user.c

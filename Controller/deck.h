@@ -14,4 +14,6 @@ struct deck {
 };
 
 
+int addDeck(sqlite3* db, const struct deck* Deck);
+
 #endif //YKNAA_DECK_H
