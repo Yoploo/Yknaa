@@ -82,19 +82,7 @@ int registerUser(sqlite3* db, const struct user *User) {
 }
 
 int loginUser(sqlite3* db, const struct user *User) {
-
-    // Vérifier si l'utilisateur existe déjà
-    int userCount = userExists(db, User->nickname);
-
-    if (userCount < 0) {
-        fprintf(stderr, "Erreur lors de la vérification de l'existence de l'utilisateur.\n");
-        return userCount; // ou toute autre valeur pour indiquer une erreur
-    } else if (userCount > 0) {
-        fprintf(stderr, "L'utilisateur avec le nom '%s' existe déjà.\n", User->nickname);
-        return -1; // ou toute autre valeur pour indiquer que l'utilisateur existe déjà
-    }
-
-    const char* checkPassword = "SELECT password FROM users WHERE user_id = ?";
+    const char* checkPassword = "SELECT COUNT(*) FROM users WHERE user_id = ? AND password = ?";
     sqlite3_stmt* stmt;
 
     int req = sqlite3_prepare_v2(db, checkPassword, -1, &stmt, 0);
@@ -112,9 +100,15 @@ int loginUser(sqlite3* db, const struct user *User) {
         return req;
     }
 
+    int count = sqlite3_column_int(stmt, 0);
     sqlite3_finalize(stmt);
-
-    return 0;
+    if (count == 1) {
+        //front pour quand il est connecté
+        return 1;  // Vous pouvez choisir une autre valeur si nécessaire
+    } else {
+        //front pour echoué
+        return 0;  // Vous pouvez choisir une autre valeur si nécessaire
+    }
 }
 
 int deckByUser(sqlite3* db, const struct user *User) {
