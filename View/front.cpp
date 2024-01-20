@@ -20,13 +20,15 @@
 #include "../Controller/deck.h"
 #include "../Controller/deck.c"
 #include "../Controller/card.h"
+#include "../Controller/user.h"
+#include "../Controller/user.c"
 
 void createMenuBar(QMenuBar &menuBar, QStackedWidget &stackedWidget);
 void createTopButtonsLayout(QHBoxLayout &topButtonsLayout, QStackedWidget &stackedWidget);
 void createTextEditPage(QStackedWidget &stackedWidget, const QString &pageTitle, int buttonIndex, sqlite3* db);
 void goToHomePage(QStackedWidget &stackedWidget);
-void createRegisterPage(QStackedWidget &stackedWidget);
-void createLoginPage(QStackedWidget &stackedWidget);
+void createRegisterPage(QStackedWidget &stackedWidget,sqlite3 *db);
+void createLoginPage(QStackedWidget &stackedWidget,sqlite3 *db);
 
 
 // Fonction pour créer la barre de menu
@@ -212,7 +214,7 @@ void goToHomePage(QStackedWidget &stackedWidget) {
 
 
 // Fonction pour créer une page de connexion
-void createLoginPage(QStackedWidget &stackedWidget) {
+void createLoginPage(QStackedWidget &stackedWidget,sqlite3 *db,struct user* myUser) {
     QWidget *loginPage = new QWidget;
     QVBoxLayout *layout = new QVBoxLayout(loginPage);
 
@@ -245,18 +247,29 @@ void createLoginPage(QStackedWidget &stackedWidget) {
     layout->addWidget(registerLink);  // Ajoutez le lien "Register" au layout
 
     // Capture explicite des variables utilisées dans la lambda
-    QObject::connect(loginButton, &QPushButton::clicked, [&stackedWidget, usernameLineEdit, passwordLineEdit, loginPage]() {
+    QObject::connect(loginButton, &QPushButton::clicked, [&stackedWidget, usernameLineEdit, passwordLineEdit, loginPage,db,myUser]() {
         // Handle the "Login" button click event
         qDebug() << "Login button clicked!";
         qDebug() << "Username: " << usernameLineEdit->text();
         qDebug() << "Password: " << passwordLineEdit->text();
 
-        // Add your login logic here, e.g., check credentials
-        // For now, let's just show a message box indicating success
-        QMessageBox::information(loginPage, "Login Successful", "Welcome!");
 
-        // You can add logic to switch to another page after successful login
-        stackedWidget.setCurrentIndex(7);
+        myUser->nickname = usernameLineEdit->text().toUtf8().constData();
+        myUser->password = passwordLineEdit->text().toUtf8().constData();
+
+
+        int res = loginUser(db,myUser);
+        if(res == 0 ){
+            QMessageBox::information(loginPage, "Login Failed", "Wrong nickname or password");
+
+        }
+        else{
+            QMessageBox::information(loginPage, "Login Successful", "Welcome!");
+            myUser->user_id = res;
+            stackedWidget.setCurrentIndex(7);
+        }
+
+
     });
 
     stackedWidget.addWidget(loginPage);
@@ -264,7 +277,7 @@ void createLoginPage(QStackedWidget &stackedWidget) {
 
 
 
-void createRegisterPage(QStackedWidget &stackedWidget) {
+void createRegisterPage(QStackedWidget &stackedWidget,sqlite3 *db) {
     QWidget *registerPage = new QWidget;
     QVBoxLayout *layout = new QVBoxLayout(registerPage);
 
@@ -302,19 +315,36 @@ void createRegisterPage(QStackedWidget &stackedWidget) {
     layout->addWidget(LoginLink);
 
     // Capture explicite des variables utilisées dans la lambda
-    QObject::connect(registerButton, &QPushButton::clicked, [&stackedWidget, usernameLineEdit, passwordLineEdit, confirmPasswordLineEdit, registerPage]() {
+    QObject::connect(registerButton, &QPushButton::clicked, [&stackedWidget, usernameLineEdit, passwordLineEdit, confirmPasswordLineEdit, registerPage,db]() {
         // Handle the "Register" button click event
         qDebug() << "Register button clicked!";
         qDebug() << "Username: " << usernameLineEdit->text();
         qDebug() << "Password: " << passwordLineEdit->text();
         qDebug() << "Confirm Password: " << confirmPasswordLineEdit->text();
 
-        // Add your registration logic here, e.g., validate input
-        // For now, let's just show a message box indicating success
-        QMessageBox::information(registerPage, "Registration Successful", "You are now registered!");
 
-        // You can add logic to switch to another page after successful registration
-        stackedWidget.setCurrentIndex(5); // Changez à la page de connexion (index 5 dans cet exemple)
+        // Add your registration logic here, e.g., validate input
+
+        struct user newuser{
+                -1,
+                usernameLineEdit->text().toUtf8().constData(),
+                passwordLineEdit->text().toUtf8().constData(),
+                0
+
+        };
+        if(verifpassword(passwordLineEdit->text().toUtf8().constData(),confirmPasswordLineEdit->text().toUtf8().constData()) == 1){
+            int result = registerUser(db,&newuser);
+            if(result == 0){
+                QMessageBox::information(registerPage, "Registration Failed", "The nickname already exist");
+            }
+            else{
+                QMessageBox::information(registerPage, "Registration Successful", "You are now registered!");
+                stackedWidget.setCurrentIndex(5); // Changez à la page de connexion (index 5 dans cet exemple)
+            }
+        }
+        else{
+            QMessageBox::information(registerPage, "Registration Failed", "Confirmation password is not the same as the password");
+        }
     });
 
     stackedWidget.addWidget(registerPage);

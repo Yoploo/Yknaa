@@ -81,4 +81,5 @@ int deleteDeck(sqlite3* db, const struct deck* Deck, int deck_id) {
 }
 
 int editDeck(sqlite3* db, int deck_id, int user_id) {
+    return 0;
 }

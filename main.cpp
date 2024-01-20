@@ -9,12 +9,28 @@
 #include <QTextEdit>
 #include <QFileDialog>
 #include "View/front.h"
+#include "Database/createDatabase.c"
+#include "Controller/user.h"
 
 
-/*
+
+
+
 int main(int argc, char *argv[]) {
 
     // Ouvrir la base de données
+
+    struct user myUser{
+            -1,
+            "",
+            "",
+            0
+    };
+    int res = createDatabase();
+    if (res == 1){
+        printf("Impossible de creer la base de données");
+        return 1;
+    }
     sqlite3* db;
     int result = sqlite3_open("Ykna.db", &db);
     if (result != SQLITE_OK) {
@@ -46,12 +62,10 @@ int main(int argc, char *argv[]) {
     for (int i = 1; i <= 5; ++i) {
         createTextEditPage(stackedWidget, "Page for Button " + QString::number(i), i - 1,  db);
     }
-
     // Create the login page
-    createLoginPage(stackedWidget);
-
+    createLoginPage(stackedWidget,db,&myUser);
     // Create the register page
-    createRegisterPage(stackedWidget);
+    createRegisterPage(stackedWidget,db);
 
     // Set the top buttons layout
     layout.addWidget(&menuBar);
@@ -85,8 +99,8 @@ int main(int argc, char *argv[]) {
     // Run the application
     return app.exec();
 }
-*/
 
+/*
 #include <QApplication>
 #include <QPushButton>
 #include "Database/createDatabase.h"
@@ -128,3 +142,4 @@ int main(int argc, char **argv)
 
     return 0;
 }
+ */

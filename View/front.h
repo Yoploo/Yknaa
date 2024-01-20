@@ -16,7 +16,7 @@ void createMenuBar(QMenuBar &menuBar, QStackedWidget &stackedWidget);
 void createTopButtonsLayout(QHBoxLayout &topButtonsLayout, QStackedWidget &stackedWidget);
 void createTextEditPage(QStackedWidget &stackedWidget, const QString &pageTitle, int buttonIndex, sqlite3* db);
 void goToHomePage(QStackedWidget &stackedWidget);
-void createLoginPage(QStackedWidget &stackedWidget);
-void createRegisterPage(QStackedWidget &stackedWidget);
+void createLoginPage(QStackedWidget &stackedWidget,sqlite3 *db,struct user* myUser);
+void createRegisterPage(QStackedWidget &stackedWidget,sqlite3 *db);
 
 #endif //YKNAA_FRONT_H

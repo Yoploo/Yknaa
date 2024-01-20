@@ -1,7 +1,7 @@
 CREATE TABLE IF NOT EXISTS users (
                                      id INTEGER PRIMARY KEY,
                                      nickname TEXT NOT NULL,
-                                     password INTEGER NOT NULL,
+                                     password TEXT NOT NULL,
                                      rank INTEGER
 );
 

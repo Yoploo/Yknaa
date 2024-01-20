@@ -8,8 +8,11 @@
 struct user {
     int user_id;
     const char* nickname;
-    int password;
+    const char* password;
     int rank;
 };
+
+int verifpassword(const char * password1, const char * password2);
+int registerUser(sqlite3* db, const struct user *User);
 
 #endif //YKNAA_USER_H

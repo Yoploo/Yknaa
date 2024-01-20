@@ -2,8 +2,10 @@
 // Created by Mathéo on 19/01/2024.
 //
 #include <stdio.h>
+#include <string.h>
 #include <sqlite3.h>
 #include "user.h"
+
 int registerUser(sqlite3* db, const struct user *User);
 int UserExists(sqlite3* db, const char* nickname);
 int loginUser(sqlite3* db, const struct user *User);
@@ -65,7 +67,7 @@ int registerUser(sqlite3* db, const struct user *User) {
     }
 
     sqlite3_bind_text(stmt, 1, User->nickname, -1, SQLITE_STATIC);
-    sqlite3_bind_int(stmt, 2, User->password);
+    sqlite3_bind_text(stmt, 2, User->password,-1, SQLITE_STATIC);
     sqlite3_bind_int(stmt, 3, User->rank);
 
     req = sqlite3_step(stmt);
@@ -82,19 +84,7 @@ int registerUser(sqlite3* db, const struct user *User) {
 }
 
 int loginUser(sqlite3* db, const struct user *User) {
-
-    // Vérifier si l'utilisateur existe déjà
-    int userCount = userExists(db, User->nickname);
-
-    if (userCount < 0) {
-        fprintf(stderr, "Erreur lors de la vérification de l'existence de l'utilisateur.\n");
-        return userCount; // ou toute autre valeur pour indiquer une erreur
-    } else if (userCount > 0) {
-        fprintf(stderr, "L'utilisateur avec le nom '%s' existe déjà.\n", User->nickname);
-        return -1; // ou toute autre valeur pour indiquer que l'utilisateur existe déjà
-    }
-
-    const char* checkPassword = "SELECT password FROM users WHERE user_id = ?";
+    const char* checkPassword = "SELECT id FROM users WHERE nickname = ? AND password = ?";
     sqlite3_stmt* stmt;
 
     int req = sqlite3_prepare_v2(db, checkPassword, -1, &stmt, 0);
@@ -103,18 +93,25 @@ int loginUser(sqlite3* db, const struct user *User) {
         return req;
     }
 
-    sqlite3_bind_int(stmt, 1, User->user_id);
-    sqlite3_bind_int(stmt, 2, User->password);
+    sqlite3_bind_text(stmt, 1, User->nickname, -1, SQLITE_STATIC);
+    sqlite3_bind_text(stmt, 2, User->password, -1, SQLITE_STATIC);
+
 
     req = sqlite3_step(stmt);
-    if (req != SQLITE_DONE) {
+    if (req == SQLITE_ROW) {
+        int user_id = sqlite3_column_int(stmt, 0);
+        sqlite3_finalize(stmt);
+        return user_id;
+    } else if (req == SQLITE_DONE) {
+        // Aucune correspondance, l'utilisateur n'existe pas ou les informations d'identification sont incorrectes
+        sqlite3_finalize(stmt);
+        return 0;
+    } else {
+        // Une erreur s'est produite lors de l'exécution de la requête
         fprintf(stderr, "Erreur lors de l'exécution de la requête : %s\n", sqlite3_errmsg(db));
+        sqlite3_finalize(stmt);
         return req;
     }
-
-    sqlite3_finalize(stmt);
-
-    return 0;
 }
 
 int deckByUser(sqlite3* db, const struct user *User) {
@@ -136,5 +133,12 @@ int deckByUser(sqlite3* db, const struct user *User) {
 
     sqlite3_finalize(stmt);
 
+    return 0;
+}
+
+int verifpassword(const char * password1, const char * password2){
+    if (strcmp(password1,password2) == 0){
+        return 1;
+    }
     return 0;
 }
