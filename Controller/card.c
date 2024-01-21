@@ -100,6 +100,65 @@ int deleteCard(sqlite3* db, const struct card *Card,int card_id) {
     printf("Carte supprimé avec succès.\n");
 
     return 0;
+}
+
+struct Cardlist* addCardToList(struct Cardlist* head, int card_id, const char* recto, const char* verso, int rank, int points) {
+    struct Cardlist* newCard = (struct Cardlist*)malloc(sizeof(struct Cardlist));
+    if(!newCard) {
+        exit(EXIT_FAILURE);
+    }
+    newCard->card_id = card_id;
+    newCard->recto = recto;
+    newCard->verso = verso;
+    newCard->rank = rank;
+    newCard->points = points;
+    newCard->next = head;
+    return newCard;
+}
 
 
+struct Cardlist* cardsByDeckId(sqlite3* db, int deck_id) {
+    const char* cards = "SELECT card_id, recto, verso, rank, points FROM cards WHERE deck_id = ?";
+    sqlite3_stmt* stmt;
+
+    int returnCards = sqlite3_prepare_v2(db, cards, -1, &stmt, 0);
+    if (returnCards != SQLITE_OK) {
+        fprintf(stderr, "Erreur lors de la préparation de la requête pour récupérer les cartes : %s\n", sqlite3_errmsg(db));
+        return NULL;
+    }
+
+    sqlite3_bind_int(stmt, 1, deck_id);
+
+    struct Cardlist* cardList = NULL;
+
+    int req;
+    while ((req = sqlite3_step(stmt)) == SQLITE_ROW) {
+        int card_id = sqlite3_column_int(stmt, 0);
+        const char* recto = (const char*)sqlite3_column_text(stmt, 1);
+        const char* verso = (const char*)sqlite3_column_text(stmt, 2);
+        int rank = sqlite3_column_int(stmt, 3);
+        int points = sqlite3_column_int(stmt, 4);
+
+        cardList = addCardToList(cardList, card_id, recto, verso, rank, points);
+    }
+
+    if (req != SQLITE_DONE) {
+        fprintf(stderr, "Erreur lors de l'exécution de la requête pour récupérer les cartes : %s\n", sqlite3_errmsg(db));
+        sqlite3_finalize(stmt);
+        return NULL;
+    }
+
+    sqlite3_finalize(stmt);
+
+    return cardList;
+}
+
+void freeCardList(struct Cardlist* head) {
+    while (head != NULL) {
+        struct Cardlist* temp = head;
+        head = head->next;
+        free((char*)temp->recto);
+        free((char*)temp->verso);
+        free(temp);
+    }
 }

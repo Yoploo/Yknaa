@@ -13,6 +13,16 @@ struct deck {
     int user_id;
 };
 
+struct decklist{
+    int deck_id;
+    const char* subject;
+    const char* description;
+    const char* tag;
+    const char* status;
+
+    struct decklist* next;
+};
+
 
 int addDeck(sqlite3* db, const struct deck* Deck);
 

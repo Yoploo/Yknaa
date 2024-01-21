@@ -12,6 +12,7 @@
 #include <QAction>
 #include <QStackedWidget>
 #include <QTextEdit>
+#include <QTextBrowser>
 #include <QFileDialog>
 #include <QFile>
 #include <QMessageBox>
@@ -20,6 +21,7 @@
 #include "../Controller/deck.h"
 #include "../Controller/deck.c"
 #include "../Controller/card.h"
+#include "../Controller/card.c"
 #include "../Controller/user.h"
 #include "../Controller/user.c"
 
@@ -29,6 +31,12 @@ void createTextEditPage(QStackedWidget &stackedWidget, const QString &pageTitle,
 void goToHomePage(QStackedWidget &stackedWidget);
 void createRegisterPage(QStackedWidget &stackedWidget,sqlite3 *db);
 int createLoginPage(QStackedWidget &stackedWidget, sqlite3 *db, struct user *myUser, QWidget &loginPage);
+void freeCardList(struct Cardlist* head);
+struct Cardlist* cardsByDeckId(sqlite3* db, int deck_id);
+void createDeckPage(QStackedWidget &stackedWidget, int deck_id,int user_id, sqlite3* db);
+int addCard(sqlite3* db, const struct card *Card);
+void updateCardList(QWidget *cardListWidget, sqlite3 *db, int deck_id);
+void clearCardListWidget(QWidget *cardListWidget);
 
 
 // Fonction pour créer la barre de menu
@@ -168,12 +176,53 @@ void createTextEditPage(QStackedWidget &stackedWidget, const QString &pageTitle,
 
 
         });
-    }else if (buttonIndex == 1) {
+    }else
+        QString savedText;
+        if (buttonIndex == 1) {
         // Page pour le bouton 2 (Mes Decks)
         QLabel *labelMesDecks = new QLabel("Mes Decks:", page);
-        QTextEdit *textEditMesDecks = new QTextEdit(page);
+        QTextBrowser *textEditMesDecks = new QTextBrowser(page);
         textEditMesDecks->setStyleSheet("margin-bottom: 5px;");
-        textEditMesDecks->setPlainText("Liste de vos decks ici...");
+
+
+        // Appeler la fonction decksByUserId pour obtenir la liste des decks
+        struct decklist* deckList = decksByUserId(db, user_id);
+
+        // Vérifier si la liste des decks est non nulle
+        if (deckList != NULL) {
+            // Parcourir la liste des decks et ajouter les informations au QTextEdit
+            while (deckList != NULL) {
+                // Ajoutez d'autres informations du deck si nécessaire
+                QString deckInfo = QString("Subject: %1\nDescription: %2\nTag: %3\nStatus: %4\n\n")
+                        .arg(deckList->subject)
+                        .arg(deckList->description)
+                        .arg(deckList->tag)
+                        .arg(deckList->status);
+
+                textEditMesDecks->append(deckInfo);
+
+                // Utilisez un lien pour afficher les cartes du deck
+                QString deckLink = QString("<a href=\"deck://%1\">Voir les cartes du deck</a>").arg(deckList->deck_id);
+
+                QObject::connect(textEditMesDecks, &QTextBrowser::anchorClicked, [deckList,user_id, db, &stackedWidget](const QUrl& link) {
+                    if (link.scheme() == "deck") {
+                        int deck_id = deckList->deck_id;
+                        createDeckPage(stackedWidget, deck_id,user_id, db);
+                    }
+                });
+                textEditMesDecks->append(deckLink);
+
+                // Ajoutez une séparation visuelle entre les decks
+                textEditMesDecks->append("------------------------------");
+
+                deckList = deckList->next;
+            }
+
+            // Libérer la mémoire de la liste des decks après avoir terminé de les afficher
+            freeDeckList(deckList);
+        } else {
+            textEditMesDecks->setPlainText("Aucun deck trouvé.");
+        }
 
         pageLayout->addWidget(labelMesDecks);
         pageLayout->addWidget(textEditMesDecks);
@@ -349,6 +398,161 @@ void createRegisterPage(QStackedWidget &stackedWidget,sqlite3 *db) {
 
     stackedWidget.addWidget(registerPage);
 }
+
+void createDeckPage(QStackedWidget &stackedWidget, int deck_id, int user_id, sqlite3 *db) {
+    // Créer une nouvelle page pour le deck
+    QWidget *deckPage = new QWidget;
+    QVBoxLayout *deckPageLayout = new QVBoxLayout(deckPage);
+
+    // Récupérer la liste des cartes pour le deck
+    struct Cardlist *cardList = cardsByDeckId(db, deck_id);
+
+    // Vérifier si la liste des cartes est non nulle
+    if (cardList != NULL) {
+        // Parcourir la liste des cartes et ajouter les informations à la page du deck
+        while (cardList != NULL) {
+            // Utilisez le format que vous préférez pour afficher les informations de la carte
+            QString cardInfo = QString("Recto: %1\nVerso: %2\nRank: %3\nPoints: %4\n\n")
+                    .arg(cardList->recto)
+                    .arg(cardList->verso)
+                    .arg(cardList->rank)
+                    .arg(cardList->points);
+
+            QLabel *cardLabel = new QLabel(cardInfo, deckPage);
+            deckPageLayout->addWidget(cardLabel);
+
+            cardList = cardList->next;
+        }
+
+        // Libérer la mémoire de la liste des cartes
+        freeCardList(cardList);
+    } else {
+        QLabel *noCardsLabel = new QLabel("Aucune carte trouvée pour ce deck.", deckPage);
+        deckPageLayout->addWidget(noCardsLabel);
+    }
+
+    // Formulaire pour ajouter une nouvelle carte
+    QLabel *labelAddCard = new QLabel("Ajouter une carte au deck:", deckPage);
+
+    // Ajouter des labels pour indiquer à quoi correspondent les champs du formulaire
+    QLabel *labelRecto = new QLabel("Recto:", deckPage);
+    QLineEdit *lineEditRecto = new QLineEdit(deckPage);
+
+    QLabel *labelVerso = new QLabel("Verso:", deckPage);
+    QLineEdit *lineEditVerso = new QLineEdit(deckPage);
+
+    QLabel *labelRank = new QLabel("Rank:", deckPage);
+    QLineEdit *lineEditRank = new QLineEdit(deckPage);
+
+    QLabel *labelPoints = new QLabel("Points:", deckPage);
+    QLineEdit *lineEditPoints = new QLineEdit(deckPage);
+
+    QPushButton *addCardButton = new QPushButton("Ajouter la carte", deckPage);
+
+    // Connecter le bouton à une fonction pour traiter l'ajout de la carte
+    QObject::connect(addCardButton, &QPushButton::clicked, [db, deck_id, user_id, lineEditRecto, lineEditVerso, lineEditRank, lineEditPoints, deckPage]() {
+        // Récupérer les valeurs du formulaire
+        const char *recto = lineEditRecto->text().toUtf8().constData();
+        const char *verso = lineEditVerso->text().toUtf8().constData();
+        int rank = lineEditRank->text().toInt();
+        int points = lineEditPoints->text().toInt();
+
+        struct card newCard{
+                recto,
+                verso,
+                rank,
+                points,
+                deck_id,
+                user_id
+        };
+
+        // Appeler une fonction pour ajouter la carte à la base de données
+        int result = addCard(db, &newCard);
+
+        if (result != 0) {
+            qDebug() << "Erreur lors de l'ajout de la carte";
+        } else {
+            qDebug() << "Carte ajoutée avec succès";
+            // Actualiser la liste des cartes sur la page
+            updateCardList(deckPage, db, deck_id); // Mettez à jour avec la nouvelle fonction
+        }
+    });
+
+    deckPageLayout->addWidget(labelAddCard);
+
+    // Ajouter les labels et champs du formulaire
+    deckPageLayout->addWidget(labelRecto);
+    deckPageLayout->addWidget(lineEditRecto);
+
+    deckPageLayout->addWidget(labelVerso);
+    deckPageLayout->addWidget(lineEditVerso);
+
+    deckPageLayout->addWidget(labelRank);
+    deckPageLayout->addWidget(lineEditRank);
+
+    deckPageLayout->addWidget(labelPoints);
+    deckPageLayout->addWidget(lineEditPoints);
+
+    deckPageLayout->addWidget(addCardButton);
+
+    // Ajouter la page du deck à la QStackedWidget
+    stackedWidget.addWidget(deckPage);
+
+    // Afficher la page du deck dans la QStackedWidget
+    stackedWidget.setCurrentWidget(deckPage);
+}
+
+void updateCardList(QWidget *deckPage, sqlite3 *db, int deck_id) {
+    // Supprimer tous les widgets de la page du deck
+    QLayoutItem *child;
+    while ((child = deckPage->layout()->takeAt(0)) != nullptr) {
+        delete child->widget();
+        delete child;
+    }
+
+    // Récupérer la nouvelle liste des cartes pour le deck
+    struct Cardlist *cardList = cardsByDeckId(db, deck_id);
+
+    // Vérifier si la liste des cartes est non nulle
+    if (cardList != NULL) {
+        // Parcourir la liste des cartes et ajouter les informations à la page du deck
+        while (cardList != NULL) {
+            // Utilisez le format que vous préférez pour afficher les informations de la carte
+            QString cardInfo = QString("Recto: %1\nVerso: %2\nRank: %3\nPoints: %4\n\n")
+                    .arg(cardList->recto)
+                    .arg(cardList->verso)
+                    .arg(cardList->rank)
+                    .arg(cardList->points);
+
+            QLabel *cardLabel = new QLabel(cardInfo, deckPage);
+            deckPage->layout()->addWidget(cardLabel);
+
+            cardList = cardList->next;
+        }
+
+        // Libérer la mémoire de la liste des cartes
+        freeCardList(cardList);
+    } else {
+        QLabel *noCardsLabel = new QLabel("Aucune carte trouvée pour ce deck.", deckPage);
+        deckPage->layout()->addWidget(noCardsLabel);
+    }
+
+    // Rafraîchir l'affichage
+    deckPage->layout()->update();
+}
+
+
+// Fonction pour effacer le contenu actuel du widget de liste des cartes
+void clearCardListWidget(QWidget *cardListWidget) {
+    QLayout *layout = cardListWidget->layout();
+    QLayoutItem *child;
+    while ((child = layout->takeAt(0)) != nullptr) {
+        delete child->widget();
+        delete child;
+    }
+}
+
+
 
 
 
