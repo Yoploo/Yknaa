@@ -25,10 +25,10 @@
 
 void createMenuBar(QMenuBar &menuBar, QStackedWidget &stackedWidget);
 void createTopButtonsLayout(QHBoxLayout &topButtonsLayout, QStackedWidget &stackedWidget);
-void createTextEditPage(QStackedWidget &stackedWidget, const QString &pageTitle, int buttonIndex, sqlite3* db);
+void createTextEditPage(QStackedWidget &stackedWidget, const QString &pageTitle, int buttonIndex, sqlite3* db,int user_id);
 void goToHomePage(QStackedWidget &stackedWidget);
 void createRegisterPage(QStackedWidget &stackedWidget,sqlite3 *db);
-void createLoginPage(QStackedWidget &stackedWidget,sqlite3 *db);
+int createLoginPage(QStackedWidget &stackedWidget, sqlite3 *db, struct user *myUser, QWidget &loginPage);
 
 
 // Fonction pour créer la barre de menu
@@ -104,14 +104,14 @@ void createTopButtonsLayout(QHBoxLayout &topButtonsLayout, QStackedWidget &stack
         topButtonsLayout.addWidget(buttons[i]);
 
         QObject::connect(buttons[i], &QPushButton::clicked, [&stackedWidget, i]() {
-            stackedWidget.setCurrentIndex(i);
+            stackedWidget.setCurrentIndex(i+3);
         });
     }
 }
 
 
 // Fonction pour créer une page avec QTextEdit et un bouton "Send" uniquement pour le bouton 1
-void createTextEditPage(QStackedWidget &stackedWidget, const QString &pageTitle, int buttonIndex, sqlite3* db) {
+void createTextEditPage(QStackedWidget &stackedWidget, const QString &pageTitle, int buttonIndex, sqlite3* db,int user_id) {
     QWidget *page = new QWidget;
     QVBoxLayout *pageLayout = new QVBoxLayout(page);
 
@@ -146,17 +146,17 @@ void createTextEditPage(QStackedWidget &stackedWidget, const QString &pageTitle,
         pageLayout->setSpacing(5);
 
         // Connect the button click signal to a slot for handling
-        QObject::connect(sendButton, &QPushButton::clicked, [lineEditSubject, lineEditDescription, lineEditTag, lineEditStatus,db]() {
+        QObject::connect(sendButton, &QPushButton::clicked, [lineEditSubject, lineEditDescription, lineEditTag, lineEditStatus,db,user_id]() {
             // Handle the "Send" button click event
             qDebug() << "Send button clicked!";
-
             // Create a card with the entered values
             struct deck newdeck {
                     lineEditSubject->text().toUtf8().constData(),
                     lineEditDescription->text().toUtf8().constData(),
                     lineEditTag->text().toUtf8().constData(),
                     lineEditStatus->text().toUtf8().constData(),
-                    1
+                    user_id
+
             };
             int result = addDeck(db, &newdeck);
             if (result != 0){
@@ -214,21 +214,20 @@ void goToHomePage(QStackedWidget &stackedWidget) {
 
 
 // Fonction pour créer une page de connexion
-void createLoginPage(QStackedWidget &stackedWidget,sqlite3 *db,struct user* myUser) {
-    QWidget *loginPage = new QWidget;
-    QVBoxLayout *layout = new QVBoxLayout(loginPage);
+int createLoginPage(QStackedWidget &stackedWidget, sqlite3 *db, struct user *myUser, QWidget &loginPage) {
+    QVBoxLayout *layout = new QVBoxLayout(&loginPage);
 
-    QLabel *labelUsername = new QLabel("Username:", loginPage);
-    QLineEdit *usernameLineEdit = new QLineEdit(loginPage);
+    QLabel *labelUsername = new QLabel("Username:", &loginPage);
+    QLineEdit *usernameLineEdit = new QLineEdit(&loginPage);
 
-    QLabel *labelPassword = new QLabel("Password:", loginPage);
-    QLineEdit *passwordLineEdit = new QLineEdit(loginPage);
+    QLabel *labelPassword = new QLabel("Password:", &loginPage);
+    QLineEdit *passwordLineEdit = new QLineEdit(&loginPage);
     passwordLineEdit->setEchoMode(QLineEdit::Password);
 
-    QPushButton *loginButton = new QPushButton("Login", loginPage);
+    QPushButton *loginButton = new QPushButton("Login", &loginPage);
 
     // Créez un lien "Register"
-    QLabel *registerLink = new QLabel("<a href=\"#\">Register</a>", loginPage);
+    QLabel *registerLink = new QLabel("<a href=\"#\">Register</a>", &loginPage);
     registerLink->setTextFormat(Qt::RichText);
     registerLink->setTextInteractionFlags(Qt::TextBrowserInteraction);
     registerLink->setOpenExternalLinks(false);
@@ -236,7 +235,7 @@ void createLoginPage(QStackedWidget &stackedWidget,sqlite3 *db,struct user* myUs
     // Connectez le signal du clic sur le lien "Register" à la fonction pour afficher la page d'enregistrement
     QObject::connect(registerLink, &QLabel::linkActivated, [&stackedWidget]() {
         // Changez la page d'enregistrement (index 2 dans cet exemple)
-        stackedWidget.setCurrentIndex(6);
+        stackedWidget.setCurrentIndex(1);
     });
 
     layout->addWidget(labelUsername);
@@ -247,32 +246,33 @@ void createLoginPage(QStackedWidget &stackedWidget,sqlite3 *db,struct user* myUs
     layout->addWidget(registerLink);  // Ajoutez le lien "Register" au layout
 
     // Capture explicite des variables utilisées dans la lambda
-    QObject::connect(loginButton, &QPushButton::clicked, [&stackedWidget, usernameLineEdit, passwordLineEdit, loginPage,db,myUser]() {
+    QObject::connect(loginButton, &QPushButton::clicked, [&stackedWidget, usernameLineEdit, passwordLineEdit, &loginPage, db, myUser]() {
         // Handle the "Login" button click event
         qDebug() << "Login button clicked!";
         qDebug() << "Username: " << usernameLineEdit->text();
         qDebug() << "Password: " << passwordLineEdit->text();
 
-
         myUser->nickname = usernameLineEdit->text().toUtf8().constData();
         myUser->password = passwordLineEdit->text().toUtf8().constData();
 
+        int res = loginUser(db, myUser);
+        if (res == 0) {
+            QMessageBox::information(&loginPage, "Login Failed", "Wrong nickname or password");
+            return 0;
+        }else {
+            QMessageBox::information(&loginPage, "Login Successful", "Welcome!");
+            stackedWidget.setCurrentIndex(2);
+            // Create pages for each button
+            for (int i = 1; i <= 5; ++i) {
+                createTextEditPage(stackedWidget, "Page for Button " + QString::number(i), i - 1, db, res);
+            }
 
-        int res = loginUser(db,myUser);
-        if(res == 0 ){
-            QMessageBox::information(loginPage, "Login Failed", "Wrong nickname or password");
-
+            return res;
         }
-        else{
-            QMessageBox::information(loginPage, "Login Successful", "Welcome!");
-            myUser->user_id = res;
-            stackedWidget.setCurrentIndex(7);
-        }
-
-
     });
 
-    stackedWidget.addWidget(loginPage);
+    stackedWidget.addWidget(&loginPage);
+    return 0;
 }
 
 
@@ -302,7 +302,7 @@ void createRegisterPage(QStackedWidget &stackedWidget,sqlite3 *db) {
     // Connectez le signal du clic sur le lien "Register" à la fonction pour afficher la page d'enregistrement
     QObject::connect(LoginLink, &QLabel::linkActivated, [&stackedWidget]() {
         // Changez la page d'enregistrement (index 2 dans cet exemple)
-        stackedWidget.setCurrentIndex(5);
+        stackedWidget.setCurrentIndex(0);
     });
 
     layout->addWidget(labelUsername);
@@ -339,7 +339,7 @@ void createRegisterPage(QStackedWidget &stackedWidget,sqlite3 *db) {
             }
             else{
                 QMessageBox::information(registerPage, "Registration Successful", "You are now registered!");
-                stackedWidget.setCurrentIndex(5); // Changez à la page de connexion (index 5 dans cet exemple)
+                stackedWidget.setCurrentIndex(0); // Changez à la page de connexion (index 5 dans cet exemple)
             }
         }
         else{

@@ -83,7 +83,7 @@ int registerUser(sqlite3* db, const struct user *User) {
 
 }
 
-int loginUser(sqlite3* db, const struct user *User) {
+int loginUser(sqlite3* db, const struct user* User) {
     const char* checkPassword = "SELECT id FROM users WHERE nickname = ? AND password = ?";
     sqlite3_stmt* stmt;
 
