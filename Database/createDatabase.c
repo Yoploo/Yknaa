@@ -4,6 +4,8 @@
 #include <stdio.h>
 #include <sqlite3.h>
 
+int createDatabase();
+
 // Fonction pour créer la base de données et exécuter les requêtes SQL
 int createDatabase() {
     sqlite3 *db;

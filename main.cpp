@@ -11,7 +11,6 @@
 #include <QLineEdit>
 #include "Controller/user.h"
 
-// Déclaration de la fonction ajouterDeck (assurez-vous d'ajuster les paramètres selon vos besoins)
 int createLoginPage(QStackedWidget &stackedWidget, sqlite3 *db, struct user *myUser, QWidget &loginPage);
 void createRegisterPage(QStackedWidget &stackedWidget, sqlite3 *db);
 void createMenuBar(QMenuBar &menuBar, QStackedWidget &stackedWidget);

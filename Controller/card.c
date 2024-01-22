@@ -10,16 +10,23 @@
 
 int addCard(sqlite3* db, const struct card *Card);
 int deleteCard(sqlite3* db, const struct card *Card, int card_id);
+struct Cardlist* addCardToList(struct Cardlist* head,const char* recto, const char* verso, int rank, int points);
+struct Cardlist* addCardListToCardListAtIndex(struct Cardlist* head, const struct Cardlist* listToAdd, int index);
+struct Cardlist* readCardListFromFile(const char* fileName);
+struct Cardlist* createOrReadDeckList(int deck_id, sqlite3* db);
+struct Cardlist* cardsByDeckId(sqlite3* db, int deck_id);
+void freeCardList(struct Cardlist* head);
+
 
 int addCard(sqlite3* db, const struct card *Card) {
-    //partie verif de deck (à refaire)
+
     const char* checkDeck = "SELECT COUNT(*) FROM decks WHERE deck_id = ? AND user_id = ?";
     sqlite3_stmt* ownerdeckStmt;
 
     int ownershipReq = sqlite3_prepare_v2(db, checkDeck, -1, &ownerdeckStmt, 0);
     if (ownershipReq != SQLITE_OK) {
         fprintf(stderr, "Erreur lors de la préparation de la requête de vérification de l'appartenance au deck : %s\n", sqlite3_errmsg(db));
-        return ownershipReq; // ou toute autre valeur pour indiquer une erreur
+        return ownershipReq;
     }
 
     sqlite3_bind_int(ownerdeckStmt, 1, Card->deck_id);
@@ -29,14 +36,14 @@ int addCard(sqlite3* db, const struct card *Card) {
     if (ownershipReq != SQLITE_ROW) {
         fprintf(stderr, "Erreur lors de l'exécution de la requête de vérification de l'appartenance au deck : %s\n", sqlite3_errmsg(db));
         sqlite3_finalize(ownerdeckStmt);
-        return ownershipReq; // ou toute autre valeur pour indiquer une erreur
+        return ownershipReq;
     }
 
     int count = sqlite3_column_int(ownerdeckStmt, 0);
     sqlite3_finalize(ownerdeckStmt);
     if (count == 0) {
         printf("Erreur : Vous ne pouvez pas ajouter une carte à un deck qui n'appartient pas à l'utilisateur.\n");
-        return -1; // ou toute autre valeur pour indiquer une erreur
+        return -1;
     }
 
 
@@ -126,25 +133,25 @@ struct Cardlist* addCardListToCardListAtIndex(struct Cardlist* head, const struc
     const struct Cardlist* tailOfListToAdd = listToAdd;
     struct Cardlist* newHead = head;
 
-    // Find the tail of the list to be added
+
     while (tailOfListToAdd->next != NULL) {
         tailOfListToAdd = tailOfListToAdd->next;
     }
 
     if (index == 0) {
-        // Add the entire list at the beginning of the original list
+
         newHead = addCardToList(newHead ,tailOfListToAdd->recto, tailOfListToAdd->verso, tailOfListToAdd->rank, tailOfListToAdd->points);
     } else {
         struct Cardlist* current = newHead;
         int currentPosition = 0;
 
-        // Traverse the list to the specified index or the end of the list
+
         while (currentPosition < index - 1 && current->next != NULL) {
             current = current->next;
             currentPosition++;
         }
 
-        // Insert each card from the list at the specified index
+
         while (tailOfListToAdd != NULL) {
             current->next = addCardToList(current->next, tailOfListToAdd->recto, tailOfListToAdd->verso, tailOfListToAdd->rank, tailOfListToAdd->points);
             current = current->next;
@@ -168,7 +175,7 @@ struct Cardlist* readCardListFromFile(const char* fileName) {
     char recto[100], verso[100];
     int rank, points;
 
-    // Read each line from the file and construct a new Cardlist
+
     while (fscanf(file, "%99[^;];%99[^;];%d;%d\n", recto, verso, &rank, &points) == 4) {
         newList = addCardToList(newList, recto, verso, rank, points);
     }

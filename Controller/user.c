@@ -10,6 +10,7 @@ int registerUser(sqlite3* db, const struct user *User);
 int UserExists(sqlite3* db, const char* nickname);
 int loginUser(sqlite3* db, const struct user *User);
 int deckByUser(sqlite3* db, const struct user *User);
+int verifpassword(const char * password1, const char * password2);
 
 int userExists(sqlite3* db, const char* nickname) {
     // Requête pour vérifier si l'utilisateur existe déjà

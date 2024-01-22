@@ -12,7 +12,10 @@ struct user {
     int rank;
 };
 
-int verifpassword(const char * password1, const char * password2);
 int registerUser(sqlite3* db, const struct user *User);
+int UserExists(sqlite3* db, const char* nickname);
+int loginUser(sqlite3* db, const struct user *User);
+int deckByUser(sqlite3* db, const struct user *User);
+int verifpassword(const char * password1, const char * password2);
 
 #endif //YKNAA_USER_H

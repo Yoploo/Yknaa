@@ -10,7 +10,10 @@
 
 int addDeck(sqlite3* db, const struct deck* Deck);
 int deleteDeck(sqlite3* db, const struct deck* Deck, int deck_id);
+struct decklist* addDeckToList(struct decklist* head, int deck_id, const char* subject, const char* description, const char* tag, const char* status);
+struct decklist* decksByUserId(sqlite3* db, int user_id);
 void freeDeckList(struct decklist* deckList);
+int editDeck(sqlite3* db, int deck_id, int user_id);
 
 int addDeck(sqlite3* db, const struct deck* Deck){
     // Préparez la requête SQL avec des paramètres préparés
@@ -107,12 +110,12 @@ struct decklist* decksByUserId(sqlite3* db, int user_id) {
         return NULL;
     }
 
-// Lier la valeur user_id à la position du point d'interrogation dans la requête
+
     sqlite3_bind_int(stmt, 1, user_id);
 
     struct decklist* deckList = NULL;
 
-// Exécuter la requête une seule fois pour obtenir les résultats
+
     while (sqlite3_step(stmt) == SQLITE_ROW) {
         int deck_id = sqlite3_column_int(stmt, 0);
         const char* subject = (const char*)sqlite3_column_text(stmt, 1);
@@ -123,10 +126,10 @@ struct decklist* decksByUserId(sqlite3* db, int user_id) {
         deckList = addDeckToList(deckList, deck_id, subject, description, tag, status);
     }
 
-// Vérifier si une erreur s'est produite lors de la récupération des résultats
+
     if (sqlite3_errcode(db) != SQLITE_DONE) {
         fprintf(stderr, "Erreur lors de l'exécution de la requête pour récupérer les deck_id : %s\n", sqlite3_errmsg(db));
-        freeDeckList(deckList);  // Libérer la mémoire en cas d'erreur
+        freeDeckList(deckList);
         sqlite3_finalize(stmt);
         return NULL;
     }
@@ -142,13 +145,13 @@ void freeDeckList(struct decklist* deckList) {
         struct decklist* temp = deckList;
         deckList = deckList->next;
 
-        // Libérer la mémoire pour les chaînes de caractères (en supprimant const)
+
         free((char*)temp->subject);
         free((char*)temp->description);
         free((char*)temp->tag);
         free((char*)temp->status);
 
-        // Libérer la mémoire pour la structure decklist
+
         free(temp);
     }
 }
