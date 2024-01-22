@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <sqlite3.h>
 #include "card.h"
+#include <string.h>
 
 
 int addCard(sqlite3* db, const struct card *Card);
@@ -102,12 +103,11 @@ int deleteCard(sqlite3* db, const struct card *Card,int card_id) {
     return 0;
 }
 
-struct Cardlist* addCardToList(struct Cardlist* head, int card_id, const char* recto, const char* verso, int rank, int points) {
+struct Cardlist* addCardToList(struct Cardlist* head,const char* recto, const char* verso, int rank, int points) {
     struct Cardlist* newCard = (struct Cardlist*)malloc(sizeof(struct Cardlist));
     if(!newCard) {
         exit(EXIT_FAILURE);
     }
-    newCard->card_id = card_id;
     newCard->recto = recto;
     newCard->verso = verso;
     newCard->rank = rank;
@@ -115,6 +115,90 @@ struct Cardlist* addCardToList(struct Cardlist* head, int card_id, const char* r
     newCard->next = head;
     return newCard;
 }
+
+
+struct Cardlist* addCardListToCardListAtIndex(struct Cardlist* head, const struct Cardlist* listToAdd, int index) {
+    if (index < 0) {
+        printf("Error: Index must be non-negative.\n");
+        return head;
+    }
+
+    const struct Cardlist* tailOfListToAdd = listToAdd;
+    struct Cardlist* newHead = head;
+
+    // Find the tail of the list to be added
+    while (tailOfListToAdd->next != NULL) {
+        tailOfListToAdd = tailOfListToAdd->next;
+    }
+
+    if (index == 0) {
+        // Add the entire list at the beginning of the original list
+        newHead = addCardToList(newHead ,tailOfListToAdd->recto, tailOfListToAdd->verso, tailOfListToAdd->rank, tailOfListToAdd->points);
+    } else {
+        struct Cardlist* current = newHead;
+        int currentPosition = 0;
+
+        // Traverse the list to the specified index or the end of the list
+        while (currentPosition < index - 1 && current->next != NULL) {
+            current = current->next;
+            currentPosition++;
+        }
+
+        // Insert each card from the list at the specified index
+        while (tailOfListToAdd != NULL) {
+            current->next = addCardToList(current->next, tailOfListToAdd->recto, tailOfListToAdd->verso, tailOfListToAdd->rank, tailOfListToAdd->points);
+            current = current->next;
+            tailOfListToAdd = tailOfListToAdd->next;
+        }
+    }
+
+    return newHead;
+}
+
+
+struct Cardlist* readCardListFromFile(const char* fileName) {
+    FILE* file = fopen(fileName, "r");
+
+    if (file == NULL) {
+        fprintf(stderr, "Error: Unable to open file %s\n", fileName);
+        return NULL;
+    }
+
+    struct Cardlist* newList = NULL;
+    char recto[100], verso[100];
+    int rank, points;
+
+    // Read each line from the file and construct a new Cardlist
+    while (fscanf(file, "%99[^;];%99[^;];%d;%d\n", recto, verso, &rank, &points) == 4) {
+        newList = addCardToList(newList, recto, verso, rank, points);
+    }
+
+    fclose(file);
+
+    return newList;
+}
+
+
+
+struct Cardlist* createOrReadDeckList(int deck_id, sqlite3* db) {
+    char fileName[50];
+    sprintf(fileName, "deck%d.txt", deck_id);
+
+    FILE* file = fopen(fileName, "r");
+
+    if (file != NULL) {
+        fclose(file);
+        return readCardListFromFile(fileName);
+    } else {
+        struct Cardlist* newList = cardsByDeckId(db, deck_id);
+        return newList;
+    }
+}
+
+
+
+
+
 
 
 struct Cardlist* cardsByDeckId(sqlite3* db, int deck_id) {
@@ -133,13 +217,12 @@ struct Cardlist* cardsByDeckId(sqlite3* db, int deck_id) {
 
     int req;
     while ((req = sqlite3_step(stmt)) == SQLITE_ROW) {
-        int card_id = sqlite3_column_int(stmt, 0);
         const char* recto = (const char*)sqlite3_column_text(stmt, 1);
         const char* verso = (const char*)sqlite3_column_text(stmt, 2);
         int rank = sqlite3_column_int(stmt, 3);
         int points = sqlite3_column_int(stmt, 4);
 
-        cardList = addCardToList(cardList, card_id, recto, verso, rank, points);
+        cardList = addCardToList(cardList, recto, verso, rank, points);
     }
 
     if (req != SQLITE_DONE) {

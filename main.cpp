@@ -1,31 +1,22 @@
 #include <sqlite3.h>
 #include <QApplication>
 #include <QLabel>
-#include <QPushButton>
 #include <QVBoxLayout>
 #include <QMenuBar>
 #include <QMenu>
 #include <QAction>
 #include <QStackedWidget>
-#include <QTextEdit>
 #include <QFileDialog>
 #include <QFile>
-#include <QMessageBox>
 #include <QLineEdit>
-#include "Controller/deck.h"
 #include "Controller/user.h"
 
 // Déclaration de la fonction ajouterDeck (assurez-vous d'ajuster les paramètres selon vos besoins)
-int addDeck(sqlite3* db, const char* subject, const char* description, const char* tag, const char* status, int user_id);
-int deleteDeck(sqlite3* db, int deck_id, int user_id);
-int addCard(sqlite3* db, const char* recto, const char* verso, int rank, int points, int deck_id, int user_id);
-int deleteCard(sqlite3* db, int deck_id, int user_id);
 int createLoginPage(QStackedWidget &stackedWidget, sqlite3 *db, struct user *myUser, QWidget &loginPage);
 void createRegisterPage(QStackedWidget &stackedWidget, sqlite3 *db);
 void createMenuBar(QMenuBar &menuBar, QStackedWidget &stackedWidget);
 void createTopButtonsLayout(QHBoxLayout &topButtonsLayout, QStackedWidget &stackedWidget);
 void createTextEditPage(QStackedWidget &stackedWidget, const QString &pageTitle, int buttonIndex, sqlite3 *db, int user_id);
-void goToHomePage(QStackedWidget &stackedWidget);
 
 int main(int argc, char *argv[]) {
     struct user myUser{

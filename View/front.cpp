@@ -1,8 +1,6 @@
 //
 // Created by loloy on 18/01/2024.
 //
-
-
 #include <QApplication>
 #include <QLabel>
 #include <QPushButton>
@@ -35,7 +33,7 @@ void freeCardList(struct Cardlist* head);
 struct Cardlist* cardsByDeckId(sqlite3* db, int deck_id);
 void createDeckPage(QStackedWidget &stackedWidget, int deck_id,int user_id, sqlite3* db);
 int addCard(sqlite3* db, const struct card *Card);
-void updateCardList(QWidget *cardListWidget, sqlite3 *db, int deck_id);
+void updateCardList(QWidget *deckPage, sqlite3 *db, int deck_id, int user_id);
 void clearCardListWidget(QWidget *cardListWidget);
 
 
@@ -66,38 +64,34 @@ void createMenuBar(QMenuBar &menuBar, QStackedWidget &stackedWidget) {
     });
 
     QAction *saveAction = fileMenu->addAction("Save");
-    // Connecter saveAction à une fonction pour sauvegarder le contenu, si nécessaire
 
     QAction *exitAction = fileMenu->addAction("Exit");
-    // Connecter exitAction à une fonction pour quitter l'application, si nécessaire
+
 
     QMenu *optionsMenu = menuBar.addMenu("Options");
 
-    // Add "Option 1" action
+
     QAction *option1Action = optionsMenu->addAction("Option 1");
     option1Action->setObjectName("option1Action");
     QObject::connect(option1Action, &QAction::triggered, [&stackedWidget]() {
-        // Handling for "Option 1" action
-        // ...
+
     });
 
-    // Add "Option 2" action
+
     QAction *option2Action = optionsMenu->addAction("Option 2");
     option2Action->setObjectName("option2Action");
     QObject::connect(option2Action, &QAction::triggered, [&stackedWidget]() {
-        // Handling for "Option 2" action
-        // ...
+
     });
 
-    // Create "Help" menu
+
     QMenu *helpMenu = menuBar.addMenu("Help");
 
-    // Add "About" action
+
     QAction *aboutAction = helpMenu->addAction("About");
     aboutAction->setObjectName("aboutAction");
     QObject::connect(aboutAction, &QAction::triggered, [&stackedWidget]() {
-        // Handling for "About" action
-        // ...
+
     });
 }
 
@@ -153,11 +147,11 @@ void createTextEditPage(QStackedWidget &stackedWidget, const QString &pageTitle,
         pageLayout->addWidget(sendButton);
         pageLayout->setSpacing(5);
 
-        // Connect the button click signal to a slot for handling
+
         QObject::connect(sendButton, &QPushButton::clicked, [lineEditSubject, lineEditDescription, lineEditTag, lineEditStatus,db,user_id]() {
-            // Handle the "Send" button click event
+
             qDebug() << "Send button clicked!";
-            // Create a card with the entered values
+
             struct deck newdeck {
                     lineEditSubject->text().toUtf8().constData(),
                     lineEditDescription->text().toUtf8().constData(),
@@ -185,14 +179,14 @@ void createTextEditPage(QStackedWidget &stackedWidget, const QString &pageTitle,
         textEditMesDecks->setStyleSheet("margin-bottom: 5px;");
 
 
-        // Appeler la fonction decksByUserId pour obtenir la liste des decks
+
         struct decklist* deckList = decksByUserId(db, user_id);
 
-        // Vérifier si la liste des decks est non nulle
+
         if (deckList != NULL) {
-            // Parcourir la liste des decks et ajouter les informations au QTextEdit
+
             while (deckList != NULL) {
-                // Ajoutez d'autres informations du deck si nécessaire
+
                 QString deckInfo = QString("Subject: %1\nDescription: %2\nTag: %3\nStatus: %4\n\n")
                         .arg(deckList->subject)
                         .arg(deckList->description)
@@ -212,13 +206,13 @@ void createTextEditPage(QStackedWidget &stackedWidget, const QString &pageTitle,
                 });
                 textEditMesDecks->append(deckLink);
 
-                // Ajoutez une séparation visuelle entre les decks
+
                 textEditMesDecks->append("------------------------------");
 
                 deckList = deckList->next;
             }
 
-            // Libérer la mémoire de la liste des decks après avoir terminé de les afficher
+
             freeDeckList(deckList);
         } else {
             textEditMesDecks->setPlainText("Aucun deck trouvé.");
@@ -227,7 +221,7 @@ void createTextEditPage(QStackedWidget &stackedWidget, const QString &pageTitle,
         pageLayout->addWidget(labelMesDecks);
         pageLayout->addWidget(textEditMesDecks);
     } else if (buttonIndex == 2) {
-        // Page pour le bouton 3 (Parcourir)
+
         QLabel *labelParcourir = new QLabel("Parcourir:", page);
         QTextEdit *textEditParcourir = new QTextEdit(page);
         textEditParcourir->setStyleSheet("margin-bottom: 5px;");
@@ -236,7 +230,7 @@ void createTextEditPage(QStackedWidget &stackedWidget, const QString &pageTitle,
         pageLayout->addWidget(labelParcourir);
         pageLayout->addWidget(textEditParcourir);
     } else if (buttonIndex == 3) {
-        // Page pour le bouton 4 (Statistiques)
+
         QLabel *labelStatistiques = new QLabel("Statistiques:", page);
         QTextEdit *textEditStatistiques = new QTextEdit(page);
         textEditStatistiques->setStyleSheet("margin-bottom: 5px;");
@@ -245,7 +239,7 @@ void createTextEditPage(QStackedWidget &stackedWidget, const QString &pageTitle,
         pageLayout->addWidget(labelStatistiques);
         pageLayout->addWidget(textEditStatistiques);
     } else if (buttonIndex == 4) {
-        // Page pour le bouton 5 (Page sans contenu défini)
+
         QLabel *labelPlaceholder = new QLabel("Contenu à définir pour le bouton 5.", page);
 
         pageLayout->addWidget(labelPlaceholder);
@@ -257,12 +251,8 @@ void createTextEditPage(QStackedWidget &stackedWidget, const QString &pageTitle,
 
 
 
-void goToHomePage(QStackedWidget &stackedWidget) {
-    stackedWidget.setCurrentIndex(0); // Index 0 correspond à la page d'accueil
-}
 
 
-// Fonction pour créer une page de connexion
 int createLoginPage(QStackedWidget &stackedWidget, sqlite3 *db, struct user *myUser, QWidget &loginPage) {
     QVBoxLayout *layout = new QVBoxLayout(&loginPage);
 
@@ -275,15 +265,15 @@ int createLoginPage(QStackedWidget &stackedWidget, sqlite3 *db, struct user *myU
 
     QPushButton *loginButton = new QPushButton("Login", &loginPage);
 
-    // Créez un lien "Register"
+
     QLabel *registerLink = new QLabel("<a href=\"#\">Register</a>", &loginPage);
     registerLink->setTextFormat(Qt::RichText);
     registerLink->setTextInteractionFlags(Qt::TextBrowserInteraction);
     registerLink->setOpenExternalLinks(false);
 
-    // Connectez le signal du clic sur le lien "Register" à la fonction pour afficher la page d'enregistrement
+
     QObject::connect(registerLink, &QLabel::linkActivated, [&stackedWidget]() {
-        // Changez la page d'enregistrement (index 2 dans cet exemple)
+
         stackedWidget.setCurrentIndex(1);
     });
 
@@ -292,11 +282,11 @@ int createLoginPage(QStackedWidget &stackedWidget, sqlite3 *db, struct user *myU
     layout->addWidget(labelPassword);
     layout->addWidget(passwordLineEdit);
     layout->addWidget(loginButton);
-    layout->addWidget(registerLink);  // Ajoutez le lien "Register" au layout
+    layout->addWidget(registerLink);
 
-    // Capture explicite des variables utilisées dans la lambda
+
     QObject::connect(loginButton, &QPushButton::clicked, [&stackedWidget, usernameLineEdit, passwordLineEdit, &loginPage, db, myUser]() {
-        // Handle the "Login" button click event
+
         qDebug() << "Login button clicked!";
         qDebug() << "Username: " << usernameLineEdit->text();
         qDebug() << "Password: " << passwordLineEdit->text();
@@ -348,9 +338,9 @@ void createRegisterPage(QStackedWidget &stackedWidget,sqlite3 *db) {
     LoginLink->setTextInteractionFlags(Qt::TextBrowserInteraction);
     LoginLink->setOpenExternalLinks(false);
 
-    // Connectez le signal du clic sur le lien "Register" à la fonction pour afficher la page d'enregistrement
+
     QObject::connect(LoginLink, &QLabel::linkActivated, [&stackedWidget]() {
-        // Changez la page d'enregistrement (index 2 dans cet exemple)
+
         stackedWidget.setCurrentIndex(0);
     });
 
@@ -363,16 +353,16 @@ void createRegisterPage(QStackedWidget &stackedWidget,sqlite3 *db) {
     layout->addWidget(registerButton);
     layout->addWidget(LoginLink);
 
-    // Capture explicite des variables utilisées dans la lambda
+
     QObject::connect(registerButton, &QPushButton::clicked, [&stackedWidget, usernameLineEdit, passwordLineEdit, confirmPasswordLineEdit, registerPage,db]() {
-        // Handle the "Register" button click event
+
         qDebug() << "Register button clicked!";
         qDebug() << "Username: " << usernameLineEdit->text();
         qDebug() << "Password: " << passwordLineEdit->text();
         qDebug() << "Confirm Password: " << confirmPasswordLineEdit->text();
 
 
-        // Add your registration logic here, e.g., validate input
+
 
         struct user newuser{
                 -1,
@@ -400,41 +390,43 @@ void createRegisterPage(QStackedWidget &stackedWidget,sqlite3 *db) {
 }
 
 void createDeckPage(QStackedWidget &stackedWidget, int deck_id, int user_id, sqlite3 *db) {
-    // Créer une nouvelle page pour le deck
+
+
     QWidget *deckPage = new QWidget;
     QVBoxLayout *deckPageLayout = new QVBoxLayout(deckPage);
 
-    // Récupérer la liste des cartes pour le deck
+
     struct Cardlist *cardList = cardsByDeckId(db, deck_id);
 
-    // Vérifier si la liste des cartes est non nulle
+
+
+
     if (cardList != NULL) {
-        // Parcourir la liste des cartes et ajouter les informations à la page du deck
+        printf("%s",cardList->recto);
         while (cardList != NULL) {
-            // Utilisez le format que vous préférez pour afficher les informations de la carte
+
             QString cardInfo = QString("Recto: %1\nVerso: %2\nRank: %3\nPoints: %4\n\n")
                     .arg(cardList->recto)
                     .arg(cardList->verso)
                     .arg(cardList->rank)
                     .arg(cardList->points);
-
             QLabel *cardLabel = new QLabel(cardInfo, deckPage);
             deckPageLayout->addWidget(cardLabel);
 
             cardList = cardList->next;
         }
 
-        // Libérer la mémoire de la liste des cartes
+
         freeCardList(cardList);
     } else {
         QLabel *noCardsLabel = new QLabel("Aucune carte trouvée pour ce deck.", deckPage);
         deckPageLayout->addWidget(noCardsLabel);
     }
 
-    // Formulaire pour ajouter une nouvelle carte
+
     QLabel *labelAddCard = new QLabel("Ajouter une carte au deck:", deckPage);
 
-    // Ajouter des labels pour indiquer à quoi correspondent les champs du formulaire
+
     QLabel *labelRecto = new QLabel("Recto:", deckPage);
     QLineEdit *lineEditRecto = new QLineEdit(deckPage);
 
@@ -449,9 +441,9 @@ void createDeckPage(QStackedWidget &stackedWidget, int deck_id, int user_id, sql
 
     QPushButton *addCardButton = new QPushButton("Ajouter la carte", deckPage);
 
-    // Connecter le bouton à une fonction pour traiter l'ajout de la carte
+
     QObject::connect(addCardButton, &QPushButton::clicked, [db, deck_id, user_id, lineEditRecto, lineEditVerso, lineEditRank, lineEditPoints, deckPage]() {
-        // Récupérer les valeurs du formulaire
+
         const char *recto = lineEditRecto->text().toUtf8().constData();
         const char *verso = lineEditVerso->text().toUtf8().constData();
         int rank = lineEditRank->text().toInt();
@@ -466,21 +458,21 @@ void createDeckPage(QStackedWidget &stackedWidget, int deck_id, int user_id, sql
                 user_id
         };
 
-        // Appeler une fonction pour ajouter la carte à la base de données
+
         int result = addCard(db, &newCard);
 
         if (result != 0) {
             qDebug() << "Erreur lors de l'ajout de la carte";
         } else {
             qDebug() << "Carte ajoutée avec succès";
-            // Actualiser la liste des cartes sur la page
-            updateCardList(deckPage, db, deck_id); // Mettez à jour avec la nouvelle fonction
+
+            updateCardList(deckPage, db, deck_id,user_id);
         }
     });
 
     deckPageLayout->addWidget(labelAddCard);
 
-    // Ajouter les labels et champs du formulaire
+
     deckPageLayout->addWidget(labelRecto);
     deckPageLayout->addWidget(lineEditRecto);
 
@@ -495,29 +487,29 @@ void createDeckPage(QStackedWidget &stackedWidget, int deck_id, int user_id, sql
 
     deckPageLayout->addWidget(addCardButton);
 
-    // Ajouter la page du deck à la QStackedWidget
+
     stackedWidget.addWidget(deckPage);
 
-    // Afficher la page du deck dans la QStackedWidget
+
     stackedWidget.setCurrentWidget(deckPage);
 }
 
-void updateCardList(QWidget *deckPage, sqlite3 *db, int deck_id) {
-    // Supprimer tous les widgets de la page du deck
+void updateCardList(QWidget *deckPage, sqlite3 *db, int deck_id, int user_id) {
+
     QLayoutItem *child;
     while ((child = deckPage->layout()->takeAt(0)) != nullptr) {
         delete child->widget();
         delete child;
     }
 
-    // Récupérer la nouvelle liste des cartes pour le deck
+
     struct Cardlist *cardList = cardsByDeckId(db, deck_id);
 
-    // Vérifier si la liste des cartes est non nulle
+
     if (cardList != NULL) {
-        // Parcourir la liste des cartes et ajouter les informations à la page du deck
+
         while (cardList != NULL) {
-            // Utilisez le format que vous préférez pour afficher les informations de la carte
+
             QString cardInfo = QString("Recto: %1\nVerso: %2\nRank: %3\nPoints: %4\n\n")
                     .arg(cardList->recto)
                     .arg(cardList->verso)
@@ -530,19 +522,84 @@ void updateCardList(QWidget *deckPage, sqlite3 *db, int deck_id) {
             cardList = cardList->next;
         }
 
-        // Libérer la mémoire de la liste des cartes
+
         freeCardList(cardList);
     } else {
         QLabel *noCardsLabel = new QLabel("Aucune carte trouvée pour ce deck.", deckPage);
         deckPage->layout()->addWidget(noCardsLabel);
     }
 
-    // Rafraîchir l'affichage
+
+    QLabel *labelAddCard = new QLabel("Ajouter une carte au deck:", deckPage);
+
+
+    QLabel *labelRecto = new QLabel("Recto:", deckPage);
+    QLineEdit *lineEditRecto = new QLineEdit(deckPage);
+
+    QLabel *labelVerso = new QLabel("Verso:", deckPage);
+    QLineEdit *lineEditVerso = new QLineEdit(deckPage);
+
+    QLabel *labelRank = new QLabel("Rank:", deckPage);
+    QLineEdit *lineEditRank = new QLineEdit(deckPage);
+
+    QLabel *labelPoints = new QLabel("Points:", deckPage);
+    QLineEdit *lineEditPoints = new QLineEdit(deckPage);
+
+    QPushButton *addCardButton = new QPushButton("Ajouter la carte", deckPage);
+
+
+    QObject::connect(addCardButton, &QPushButton::clicked, [db, deck_id, user_id, lineEditRecto, lineEditVerso, lineEditRank, lineEditPoints, deckPage]() {
+
+        const char *recto = lineEditRecto->text().toUtf8().constData();
+        const char *verso = lineEditVerso->text().toUtf8().constData();
+        int rank = lineEditRank->text().toInt();
+        int points = lineEditPoints->text().toInt();
+
+        struct card newCard{
+                recto,
+                verso,
+                rank,
+                points,
+                deck_id,
+                user_id
+        };
+
+
+        int result = addCard(db, &newCard);
+
+        if (result != 0) {
+            qDebug() << "Erreur lors de l'ajout de la carte";
+        } else {
+            qDebug() << "Carte ajoutée avec succès";
+
+            updateCardList(deckPage, db, deck_id, user_id);
+        }
+    });
+
+    deckPage->layout()->addWidget(labelAddCard);
+
+
+    deckPage->layout()->addWidget(labelRecto);
+    deckPage->layout()->addWidget(lineEditRecto);
+
+    deckPage->layout()->addWidget(labelVerso);
+    deckPage->layout()->addWidget(lineEditVerso);
+
+    deckPage->layout()->addWidget(labelRank);
+    deckPage->layout()->addWidget(lineEditRank);
+
+    deckPage->layout()->addWidget(labelPoints);
+    deckPage->layout()->addWidget(lineEditPoints);
+
+    deckPage->layout()->addWidget(addCardButton);
+
+
     deckPage->layout()->update();
 }
 
 
-// Fonction pour effacer le contenu actuel du widget de liste des cartes
+
+
 void clearCardListWidget(QWidget *cardListWidget) {
     QLayout *layout = cardListWidget->layout();
     QLayoutItem *child;

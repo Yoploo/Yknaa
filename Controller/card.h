@@ -15,7 +15,6 @@ struct card {
 };
 
 struct Cardlist {
-    int card_id;
     const char* recto;
     const char* verso;
     int rank;
